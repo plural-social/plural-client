@@ -42,7 +42,7 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
-/** Registers a callback for any 401 response. Returns an unsubscribe function. */
+/** Registers a callback for a 401 on a request that sent a token. Returns an unsubscribe function. */
 export function onUnauthorized(callback: () => void): () => void {
   unauthorizedCallbacks.add(callback);
   return () => {
@@ -81,7 +81,8 @@ export async function apiFetch<T>(path: string, request: ApiRequest = {}): Promi
   }
 
   if (!response.ok) {
-    if (response.status === 401) unauthorizedCallbacks.forEach((callback) => callback());
+    // Only a rejected token means the session ended; a failed login is a plain 401.
+    if (response.status === 401 && headers.Authorization) unauthorizedCallbacks.forEach((callback) => callback());
     let body: unknown;
     try {
       body = await response.json();

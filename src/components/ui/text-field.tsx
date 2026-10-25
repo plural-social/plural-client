@@ -6,11 +6,19 @@ import { useTheme } from '@/hooks/use-theme';
 
 type TextFieldProps = Pick<
   TextInputProps,
-  'secureTextEntry' | 'autoComplete' | 'keyboardType' | 'maxLength' | 'multiline' | 'autoCapitalize'
+  | 'secureTextEntry'
+  | 'autoComplete'
+  | 'autoCorrect'
+  | 'keyboardType'
+  | 'maxLength'
+  | 'multiline'
+  | 'autoCapitalize'
 > & {
   label: string;
   value: string;
   onChangeText: (value: string) => void;
+  /** Hint shown under the input when there is no error. */
+  helperText?: string;
   error?: string;
 };
 
@@ -18,6 +26,7 @@ export function TextField({
   label,
   value,
   onChangeText,
+  helperText,
   error,
   multiline,
   ...inputProps
@@ -33,6 +42,7 @@ export function TextField({
         value={value}
         onChangeText={onChangeText}
         accessibilityLabel={label}
+        accessibilityHint={helperText}
         placeholderTextColor={theme.textSecondary}
         style={[
           styles.input,
@@ -47,6 +57,10 @@ export function TextField({
       {error ? (
         <ThemedText type="small" themeColor="danger" accessibilityLiveRegion="polite">
           {error}
+        </ThemedText>
+      ) : helperText ? (
+        <ThemedText type="small" themeColor="textSecondary">
+          {helperText}
         </ThemedText>
       ) : null}
     </View>
