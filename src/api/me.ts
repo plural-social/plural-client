@@ -8,3 +8,11 @@ export async function getMe(): Promise<Me> {
 export async function updateMe(input: { displayName?: string; bio?: string }): Promise<Me> {
   return apiFetch<Me>('/me', { method: 'PATCH', json: input });
 }
+
+export async function setAvatar(mediaUuid: string): Promise<Me> {
+  return apiFetch<Me>('/me/avatar', { method: 'PUT', json: { mediaUuid } });
+}
+
+export async function removeAvatar(): Promise<Me> {
+  return apiFetch<Me>('/me/avatar', { method: 'DELETE' });
+}
