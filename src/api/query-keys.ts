@@ -1,3 +1,5 @@
+import type { FeedKind } from '@/api/feed';
+
 export const queryKeys = {
   instance: ['instance'] as const,
   me: ['me'] as const,
@@ -5,7 +7,7 @@ export const queryKeys = {
   userPosts: (username: string) => ['userPosts', username] as const,
   post: (uuid: string) => ['post', uuid] as const,
   comments: (postUuid: string) => ['comments', postUuid] as const,
-  feed: (kind: 'following' | 'explore') => ['feed', kind] as const,
+  feed: (kind: FeedKind) => ['feed', kind] as const,
   media: (uuid: string) => ['media', uuid] as const,
   blocks: ['blocks'] as const,
   adminReports: (status: string) => ['adminReports', status] as const,

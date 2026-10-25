@@ -13,10 +13,10 @@ import { MaxContentWidth, Spacing } from '@/constants/theme';
 import { ThemedText } from './themed-text';
 import { ThemedView } from './themed-view';
 
-export default function AppTabs() {
+/** Web tab bar: a header row above the screen, so it never covers screen content. */
+export default function AppTabs(): React.JSX.Element {
   return (
-    <Tabs>
-      <TabSlot style={{ height: '100%' }} />
+    <Tabs style={styles.tabs}>
       <TabList asChild>
         <CustomTabList>
           <TabTrigger name="index" href="/" asChild>
@@ -30,6 +30,7 @@ export default function AppTabs() {
           </TabTrigger>
         </CustomTabList>
       </TabList>
+      <TabSlot style={styles.slot} />
     </Tabs>
   );
 }
@@ -58,15 +59,19 @@ export function CustomTabList(props: TabListProps) {
         </ThemedText>
 
         {props.children}
-
       </ThemedView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  tabs: {
+    flex: 1,
+  },
+  slot: {
+    flex: 1,
+  },
   tabListContainer: {
-    position: 'absolute',
     width: '100%',
     padding: Spacing.three,
     justifyContent: 'center',
