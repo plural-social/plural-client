@@ -15,7 +15,7 @@ import { videoMimeType } from '@/media/video-mime';
 
 export type Draft =
   | { kind: 'image'; file: PreparedFile }
-  | { kind: 'video'; uri: string; mimeType: string; width: number; height: number; durationMs: number };
+  | { kind: 'video'; uri: string; mimeType: string; width: number; height: number; durationMs: number | null };
 
 export type CreatePostState =
   | { step: 'empty' }
@@ -28,19 +28,30 @@ const PICK_ERROR = "Couldn't open that photo. Try another one.";
 const PERMISSION_ERROR = 'Plural needs access to your photo library to post videos.';
 
 /**
- * The picked video's length in milliseconds. The web picker reads it from an
- * HTML <video>, which reports seconds; native pickers report milliseconds.
+ * The picked video's length in milliseconds, or null when it is unknown.
+ *
+ * The web picker reads the length by loading the file into an HTML <video>,
+ * which reports seconds. When the browser cannot decode the file (often HEVC
+ * .mov files from iPhones), it reports 0 or NaN instead. Native pickers report
+ * milliseconds and always know the length.
  */
 function pickedDurationMs(asset: ImagePicker.ImagePickerAsset): number | null {
-  if (asset.duration == null) return null;
-  return Platform.OS === 'web' ? asset.duration * 1000 : asset.duration;
+  const duration = asset.duration;
+  if (duration == null || !Number.isFinite(duration) || duration <= 0) return null;
+  return Platform.OS === 'web' ? duration * 1000 : duration;
 }
 
-/** Checks a picked video against the server's limits, so a doomed upload never starts. */
+/**
+ * Checks a picked video against the server's limits, so a doomed upload never
+ * starts. An unknown length passes: the server measures it and marks the post
+ * failed with a reason if it is out of range.
+ */
 function videoDraft(asset: ImagePicker.ImagePickerAsset): { draft: Draft } | { error: string } {
   const durationMs = pickedDurationMs(asset);
-  if (durationMs == null || durationMs < 1000) return { error: 'Videos must be at least 1 second long.' };
-  if (durationMs > Limits.videoMaxDurationSeconds * 1000) return { error: 'Videos must be 3 minutes or shorter.' };
+  if (durationMs != null && durationMs < 1000) return { error: 'Videos must be at least 1 second long.' };
+  if (durationMs != null && durationMs > Limits.videoMaxDurationSeconds * 1000) {
+    return { error: 'Videos must be 3 minutes or shorter.' };
+  }
   if (asset.fileSize != null && asset.fileSize > Limits.videoMaxBytes) {
     return { error: 'Videos must be 300 MB or smaller.' };
   }
