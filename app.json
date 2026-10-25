@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "plural-client",
-    "slug": "plural-client",
+    "name": "Plural",
+    "slug": "plural",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pluralclient",
+    "scheme": "plural",
     "userInterfaceStyle": "automatic",
     "ios": {
       "icon": "./assets/expo.icon"
@@ -20,7 +20,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "server",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
