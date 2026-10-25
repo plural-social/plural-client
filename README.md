@@ -82,10 +82,25 @@ A `FlatList` where each item is exactly as tall as the screen, so paging and
 inactive one, so switching keeps each scroll position. On web, a wheel or
 trackpad gesture moves exactly one post (`src/hooks/use-wheel-paging.web.ts`).
 
+### Video playback (`src/components/post/video-post.tsx`)
+
+Only the active post and its two neighbors get a video player; every other
+video shows its poster image. This keeps at most three players alive, which
+Android needs, and preloads the next video so swiping never shows a black
+frame. A video plays only while its post is on screen, the screen is focused
+and the app is in the foreground (`useFocusEffect`, `useAppActive`). It
+restarts from the beginning when you scroll back. The mute setting is shared
+by every video (`PlaybackProvider`) and starts muted on web, where browsers
+block autoplay with sound.
+
+Videos are transcoded on the server after upload. Profiles and post pages poll
+while a post is `processing`, and refresh the feeds once it turns `ready`.
+
 ### Uploads (`src/media/`)
 
 `prepareImage` converts picked photos to JPEG (HEIC included) and scales them
-down before upload. `uploadMedia` sends the raw bytes to `POST /media`: native
+down before upload. Videos upload as they are; the picker checks their length,
+size and format first so an upload the server would reject never starts. `uploadMedia` sends the raw bytes to `POST /media`: native
 uses `expo-file-system` for progress, web uses `fetch`.
 
 ### Moderation

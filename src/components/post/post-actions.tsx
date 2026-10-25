@@ -7,6 +7,7 @@ import { useMe } from '@/auth/session-context';
 import { confirm } from '@/components/ui/confirm';
 import { Spacing } from '@/constants/theme';
 import { useActionMenu } from '@/hooks/use-action-menu';
+import { usePlayback } from '@/components/post/playback-context';
 import { useDeletePost, useToggleLike } from '@/hooks/use-post-mutations';
 import { useReportSheet } from '@/hooks/use-report-sheet';
 
@@ -27,6 +28,7 @@ export function PostActions({ post, onDeleted }: PostActionsProps): React.JSX.El
   const deletePost = useDeletePost();
   const { open, menu } = useActionMenu();
   const report = useReportSheet();
+  const { muted, toggleMuted } = usePlayback();
 
   async function handleDelete(): Promise<void> {
     const confirmed = await confirm({
@@ -49,6 +51,13 @@ export function PostActions({ post, onDeleted }: PostActionsProps): React.JSX.El
 
   return (
     <View style={styles.column}>
+      {post.media.kind === 'video' ? (
+        <ActionButton
+          icon={muted ? 'volume-mute' : 'volume-high'}
+          label={muted ? 'Unmute videos' : 'Mute videos'}
+          onPress={toggleMuted}
+        />
+      ) : null}
       <ActionButton
         icon={post.likedByMe ? 'heart' : 'heart-outline'}
         color={post.likedByMe ? LIKED_COLOR : ON_MEDIA_COLOR}

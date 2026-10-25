@@ -31,16 +31,27 @@ export function useFeed(kind: FeedKind): InfinitePage<Post> {
   });
 }
 
+// While a video is still processing, lists and the detail screen poll so the
+// post turns ready without a manual refresh.
+const PROCESSING_POLL_MS = 4000;
+
+const isProcessing = (post: Post): boolean => post.media.status === 'processing';
+
 export function useUserPosts(username: string): InfinitePage<Post> {
   return useInfiniteQuery<Page<Post>, ApiError, InfiniteData<Page<Post>>, readonly unknown[], string | null>({
     queryKey: queryKeys.userPosts(username),
     queryFn: ({ pageParam }) => listUserPosts(username, pageParam),
+    refetchInterval: (query) => (flattenPages(query.state.data).some(isProcessing) ? PROCESSING_POLL_MS : false),
     ...pageOptions,
   });
 }
 
 export function usePost(uuid: string): UseQueryResult<Post, ApiError> {
-  return useQuery<Post, ApiError>({ queryKey: queryKeys.post(uuid), queryFn: () => getPost(uuid) });
+  return useQuery<Post, ApiError>({
+    queryKey: queryKeys.post(uuid),
+    queryFn: () => getPost(uuid),
+    refetchInterval: (query) => (query.state.data && isProcessing(query.state.data) ? PROCESSING_POLL_MS : false),
+  });
 }
 
 export function useComments(postUuid: string): InfinitePage<Comment> {

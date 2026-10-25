@@ -2,16 +2,20 @@ import { useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 
 import { ApiError } from '@/api/client';
 import { createPost } from '@/api/posts';
 import { queryKeys } from '@/api/query-keys';
 import { useMe } from '@/auth/session-context';
+import { Limits } from '@/constants/limits';
 import { prepareImage, type PreparedFile } from '@/media/prepare-image';
 import { uploadMedia } from '@/media/upload-media';
+import { videoMimeType } from '@/media/video-mime';
 
-type Draft = { file: PreparedFile; kind: 'image' };
+export type Draft =
+  | { kind: 'image'; file: PreparedFile }
+  | { kind: 'video'; uri: string; mimeType: string; width: number; height: number; durationMs: number };
 
 export type CreatePostState =
   | { step: 'empty' }
@@ -21,6 +25,31 @@ export type CreatePostState =
   | { step: 'posting'; draft: Draft };
 
 const PICK_ERROR = "Couldn't open that photo. Try another one.";
+const PERMISSION_ERROR = 'Plural needs access to your photo library to post videos.';
+
+/**
+ * The picked video's length in milliseconds. The web picker reads it from an
+ * HTML <video>, which reports seconds; native pickers report milliseconds.
+ */
+function pickedDurationMs(asset: ImagePicker.ImagePickerAsset): number | null {
+  if (asset.duration == null) return null;
+  return Platform.OS === 'web' ? asset.duration * 1000 : asset.duration;
+}
+
+/** Checks a picked video against the server's limits, so a doomed upload never starts. */
+function videoDraft(asset: ImagePicker.ImagePickerAsset): { draft: Draft } | { error: string } {
+  const durationMs = pickedDurationMs(asset);
+  if (durationMs == null || durationMs < 1000) return { error: 'Videos must be at least 1 second long.' };
+  if (durationMs > Limits.videoMaxDurationSeconds * 1000) return { error: 'Videos must be 3 minutes or shorter.' };
+  if (asset.fileSize != null && asset.fileSize > Limits.videoMaxBytes) {
+    return { error: 'Videos must be 300 MB or smaller.' };
+  }
+  const mimeType = videoMimeType(asset);
+  if (!mimeType) return { error: "This video format isn't supported." };
+  return {
+    draft: { kind: 'video', uri: asset.uri, mimeType, width: asset.width, height: asset.height, durationMs },
+  };
+}
 
 function submitErrorMessage(error: unknown): string {
   if (!(error instanceof ApiError)) return 'Something went wrong. Try again.';
@@ -47,6 +76,9 @@ export function useCreatePost(): {
   caption: string;
   setCaption: (caption: string) => void;
   error: string | null;
+  /** True when the error is a denied permission that only the Settings app can fix. */
+  needsSettings: boolean;
+  openSettings: () => void;
   pick: () => Promise<void>;
   clear: () => void;
   submit: () => Promise<void>;
@@ -56,17 +88,41 @@ export function useCreatePost(): {
   const [state, setState] = useState<CreatePostState>({ step: 'empty' });
   const [caption, setCaption] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [needsSettings, setNeedsSettings] = useState(false);
 
   async function pick(): Promise<void> {
+    setNeedsSettings(false);
+    // iOS asks for library access after a video is picked unless it was granted
+    // before (see the expo-image-picker docs), so ask first.
+    if (Platform.OS === 'ios') {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        setError(PERMISSION_ERROR);
+        setNeedsSettings(true);
+        return;
+      }
+    }
+
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ['images', 'videos'],
       allowsEditing: false,
       quality: 1,
+      shouldDownloadFromNetwork: true,
     });
     const asset = result.assets?.[0];
     if (result.canceled || !asset) return;
 
     setError(null);
+    if (asset.type === 'video') {
+      const picked = videoDraft(asset);
+      if ('error' in picked) {
+        setError(picked.error);
+        return;
+      }
+      setState({ step: 'ready', draft: picked.draft });
+      return;
+    }
+
     setState({ step: 'preparing' });
     try {
       setState({ step: 'ready', draft: { file: await prepareImage(asset), kind: 'image' } });
@@ -89,9 +145,11 @@ export function useCreatePost(): {
     // fetch cannot report upload progress on web, so the bar is indeterminate there.
     setState({ step: 'uploading', draft, progress: Platform.OS === 'web' ? null : 0 });
     try {
+      // Images were re-encoded when picked; videos upload as they are and the server transcodes them.
+      const file = draft.kind === 'image' ? draft.file : draft;
       const media = await uploadMedia({
-        uri: draft.file.uri,
-        mimeType: draft.file.mimeType,
+        uri: file.uri,
+        mimeType: file.mimeType,
         onProgress: (progress) => setState({ step: 'uploading', draft, progress }),
       });
       setState({ step: 'posting', draft });
@@ -113,5 +171,15 @@ export function useCreatePost(): {
     router.navigate('/profile');
   }
 
-  return { state, caption, setCaption, error, pick, clear, submit };
+  return {
+    state,
+    caption,
+    setCaption,
+    error,
+    needsSettings,
+    openSettings: () => void Linking.openSettings(),
+    pick,
+    clear,
+    submit,
+  };
 }

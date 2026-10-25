@@ -1,5 +1,6 @@
 import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query';
-import { useRef, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -15,6 +16,7 @@ import type { Page, Post } from '@/api/types';
 import { PostItem } from '@/components/post/post-item';
 import { ErrorView } from '@/components/ui/error-view';
 import { LoadingView } from '@/components/ui/loading-view';
+import { useAppActive } from '@/hooks/use-app-active';
 import { flattenPages } from '@/hooks/use-post-queries';
 import { useWheelPaging } from '@/hooks/use-wheel-paging';
 
@@ -52,6 +54,17 @@ export function FeedPager({ query, empty, visible }: FeedPagerProps): React.JSX.
 
   const posts = flattenPages(query.data);
 
+  // Videos play only while this screen is focused and the app is in the foreground.
+  const [isFocused, setIsFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
+  const appActive = useAppActive();
+  const canPlay = visible && isFocused && appActive;
+
   const listMounted = height > 0 && posts.length > 0;
   useWheelPaging(listRef, listMounted, (direction) => {
     const index = Math.min(Math.max(activeIndexRef.current + direction, 0), posts.length - 1);
@@ -71,7 +84,14 @@ export function FeedPager({ query, empty, visible }: FeedPagerProps): React.JSX.
           ref={listRef}
           data={posts}
           keyExtractor={(post) => post.uuid}
-          renderItem={({ item, index }) => <PostItem post={item} isActive={visible && index === activeIndex} height={height} />}
+          renderItem={({ item, index }) => (
+            <PostItem
+              post={item}
+              isActive={canPlay && index === activeIndex}
+              isNear={visible && Math.abs(index - activeIndex) <= 1}
+              height={height}
+            />
+          )}
           pagingEnabled
           snapToInterval={height}
           decelerationRate="fast"

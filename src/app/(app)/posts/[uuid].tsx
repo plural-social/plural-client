@@ -1,5 +1,5 @@
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { router, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -18,11 +18,13 @@ import { PostItem } from '@/components/post/post-item';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { confirm } from '@/components/ui/confirm';
+import { Button } from '@/components/ui/button';
 import { ErrorView } from '@/components/ui/error-view';
 import { LoadingView } from '@/components/ui/loading-view';
 import { Spacing } from '@/constants/theme';
 import { isModerator } from '@/auth/roles';
-import { useDeleteComment } from '@/hooks/use-post-mutations';
+import { useAppActive } from '@/hooks/use-app-active';
+import { useDeleteComment, useDeletePost } from '@/hooks/use-post-mutations';
 import { useReportSheet } from '@/hooks/use-report-sheet';
 import { flattenPages, useComments, usePost } from '@/hooks/use-post-queries';
 
@@ -37,6 +39,7 @@ export default function PostScreen(): React.JSX.Element {
     return <ErrorView message={post.error.message} onRetry={() => void post.refetch()} />;
   }
   if (post.isPending) return <LoadingView />;
+  if (post.data.media.status === 'failed') return <FailedPost post={post.data} />;
 
   return (
     <KeyboardAvoidingView
@@ -58,6 +61,15 @@ function CommentList({ post }: { post: Post }): React.JSX.Element {
   const report = useReportSheet();
   // One clock per render keeps every row's relative time consistent.
   const [now] = useState(() => new Date());
+  // The video plays only while this screen is on top and the app is in the foreground.
+  const [isFocused, setIsFocused] = useState(false);
+  useFocusEffect(
+    useCallback(() => {
+      setIsFocused(true);
+      return () => setIsFocused(false);
+    }, []),
+  );
+  const appActive = useAppActive();
 
   async function handleDelete(commentUuid: string): Promise<void> {
     const confirmed = await confirm({
@@ -76,7 +88,8 @@ function CommentList({ post }: { post: Post }): React.JSX.Element {
         <>
           <PostItem
             post={post}
-            isActive
+            isActive={isFocused && appActive}
+            isNear
             height={windowHeight * POST_HEIGHT_FRACTION}
             bottomInset={0}
             onDeleted={() => router.back()}
@@ -117,6 +130,23 @@ function CommentList({ post }: { post: Post }): React.JSX.Element {
   );
 }
 
+/** A video the transcoder rejected. Only its author can see it, so the only action is to delete it. */
+function FailedPost({ post }: { post: Post }): React.JSX.Element {
+  const deletePost = useDeletePost();
+  return (
+    <ThemedView style={[styles.fill, styles.failed]}>
+      <ThemedText type="smallBold">This video couldn&apos;t be processed.</ThemedText>
+      <ThemedText themeColor="textSecondary">{post.media.failureReason ?? 'Processing failed.'}</ThemedText>
+      <Button
+        label="Delete post"
+        variant="danger"
+        loading={deletePost.isPending}
+        onPress={() => deletePost.mutate(post.uuid, { onSuccess: () => router.back() })}
+      />
+    </ThemedView>
+  );
+}
+
 const styles = StyleSheet.create({
   fill: {
     flex: 1,
@@ -128,5 +158,11 @@ const styles = StyleSheet.create({
   },
   footer: {
     height: Spacing.three,
+  },
+  failed: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Spacing.three,
+    padding: Spacing.four,
   },
 });

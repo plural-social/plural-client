@@ -12,6 +12,8 @@ import { Spacing } from '@/constants/theme';
 type PostItemProps = {
   post: Post;
   isActive: boolean;
+  /** True for the active post and its neighbors; see PostMedia. */
+  isNear: boolean;
   height: number;
   /** Bottom inset to keep the caption clear of the tab bar or home indicator. Defaults to the safe area. */
   bottomInset?: number;
@@ -23,7 +25,7 @@ const CAPTION_LINES = 3;
 const TEXT_ON_MEDIA = '#FFFFFF';
 
 /** One full-height post: media with the author, caption and actions overlaid. */
-export function PostItem({ post, isActive, height, bottomInset, onDeleted }: PostItemProps): React.JSX.Element {
+export function PostItem({ post, isActive, isNear, height, bottomInset, onDeleted }: PostItemProps): React.JSX.Element {
   const insets = useSafeAreaInsets();
   const [captionExpanded, setCaptionExpanded] = useState(false);
   const { author } = post;
@@ -31,7 +33,7 @@ export function PostItem({ post, isActive, height, bottomInset, onDeleted }: Pos
 
   return (
     <View style={[styles.container, { height }]}>
-      <PostMedia post={post} isActive={isActive} />
+      <PostMedia post={post} isActive={isActive} isNear={isNear} />
 
       <View style={[styles.info, { paddingBottom: bottom }]}>
         <Pressable

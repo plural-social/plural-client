@@ -1,3 +1,4 @@
+import Ionicons from '@expo/vector-icons/Ionicons';
 import type { InfiniteData, UseInfiniteQueryResult } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -10,6 +11,7 @@ import { MEDIA_BACKGROUND } from '@/components/post/post-media';
 import { ThemedText } from '@/components/themed-text';
 import { Spacing } from '@/constants/theme';
 import { flattenPages } from '@/hooks/use-post-queries';
+import { formatDuration } from '@/utils/time';
 
 type PostGridProps = {
   query: UseInfiniteQueryResult<InfiniteData<Page<Post>>, ApiError>;
@@ -75,10 +77,20 @@ function GridCell({ post, size }: { post: Post; size: number }): React.JSX.Eleme
       onPress={() => router.push(`/posts/${post.uuid}`)}
       style={{ width: size, height: size }}>
       {media.status === 'ready' ? (
-        <Image source={{ uri: media.thumbnailUrl }} contentFit="cover" style={styles.fill} />
+        <>
+          <Image source={{ uri: media.thumbnailUrl }} contentFit="cover" style={styles.fill} />
+          {media.kind === 'video' ? (
+            <>
+              <Ionicons name="play" size={16} color="#FFFFFF" style={[styles.overlayText, styles.playIcon]} />
+              <Text style={[styles.overlayText, styles.duration]}>{formatDuration(media.durationMs)}</Text>
+            </>
+          ) : null}
+        </>
       ) : (
         <View style={styles.pending}>
-          <Text style={styles.pendingText}>{media.status === 'processing' ? 'Processing' : 'Failed'}</Text>
+          <Text style={styles.pendingText}>
+            {media.status === 'processing' ? 'Processing' : 'Failed, tap for details'}
+          </Text>
         </View>
       )}
     </Pressable>
@@ -108,5 +120,23 @@ const styles = StyleSheet.create({
   pendingText: {
     color: '#FFFFFF',
     fontSize: 13,
+    textAlign: 'center',
+    padding: Spacing.one,
+  },
+  overlayText: {
+    position: 'absolute',
+    color: '#FFFFFF',
+    textShadowColor: 'rgba(0,0,0,0.7)',
+    textShadowRadius: 3,
+  },
+  playIcon: {
+    top: Spacing.one,
+    right: Spacing.one,
+  },
+  duration: {
+    left: Spacing.one,
+    bottom: Spacing.one,
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

@@ -2,35 +2,40 @@ import { Image } from 'expo-image';
 import { StyleSheet } from 'react-native';
 
 import type { Post } from '@/api/types';
+import { VideoPost } from '@/components/post/video-post';
 
 type PostMediaProps = {
   post: Post;
-  /** True while the post fills the screen. Videos (F16) play only when active. */
+  /** True while the post fills the screen. Videos play only when active. */
   isActive: boolean;
+  /** True for the active post and its neighbors. Only these get a video player. */
+  isNear: boolean;
 };
 
-/** The post's image, letterboxed on black. Videos show their poster until F16. */
-export function PostMedia({ post }: PostMediaProps): React.JSX.Element {
-  const { media } = post;
-  const label = post.caption || `Post by @${post.author.username}`;
+export const MEDIA_BACKGROUND = '#000000';
 
-  // Until F16 a video shows its poster frame, which the server stores as the thumbnail.
-  const uri = media.kind === 'image' ? media.url : media.thumbnailUrl;
+/** The post's image or video, letterboxed on black. */
+export function PostMedia({ post, isActive, isNear }: PostMediaProps): React.JSX.Element {
+  const { media } = post;
+
+  // Far-away videos show only their poster: players are expensive, and
+  // Android runs out of decoders with many alive at once.
+  if (media.kind === 'video' && isNear && media.status === 'ready') {
+    return <VideoPost post={post} isActive={isActive} />;
+  }
 
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: media.kind === 'image' ? media.url : media.thumbnailUrl }}
       placeholder={{ uri: media.thumbnailUrl }}
       placeholderContentFit="contain"
       contentFit="contain"
       transition={150}
-      accessibilityLabel={label}
+      accessibilityLabel={post.caption || `Post by @${post.author.username}`}
       style={styles.media}
     />
   );
 }
-
-export const MEDIA_BACKGROUND = '#000000';
 
 const styles = StyleSheet.create({
   media: {

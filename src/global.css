@@ -7,3 +7,11 @@
   --font-rounded: 'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif;
   --font-serif: Georgia, 'Times New Roman', serif;
 }
+
+/* expo-video on web positions its <video> with `inset: 0` but no size, so the
+   element keeps its intrinsic size and sticks to the top-left corner. Filling
+   the container lets `object-fit: contain` center it. */
+video {
+  width: 100%;
+  height: 100%;
+}
