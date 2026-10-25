@@ -34,6 +34,8 @@ type SessionContextValue = {
   signIn: (login: string, password: string) => Promise<void>;
   signUp: (input: SignUpInput) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Ends the session on this device only, for when the server already deleted it (account deletion). */
+  endSession: () => Promise<void>;
   /** Retries restoring the session after a startup network error. */
   retry: () => void;
 };
@@ -125,8 +127,8 @@ export function SessionProvider({ children }: { children: React.ReactNode }): Re
   }, []);
 
   const value = useMemo(
-    () => ({ state, signIn, signUp, signOut, retry }),
-    [state, signIn, signUp, signOut, retry],
+    () => ({ state, signIn, signUp, signOut, endSession: clearLocalSession, retry }),
+    [state, signIn, signUp, signOut, clearLocalSession, retry],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

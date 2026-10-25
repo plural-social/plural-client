@@ -14,6 +14,7 @@ export default function AppLayout(): React.JSX.Element {
         <Stack.Screen name="users/[username]" options={{ headerShown: true, title: '' }} />
         <Stack.Screen name="posts/[uuid]" options={{ headerShown: true, title: 'Post' }} />
         <Stack.Screen name="settings/blocked" options={{ headerShown: true, title: 'Blocked accounts' }} />
+        <Stack.Screen name="settings/delete-account" options={{ headerShown: true, title: 'Delete account' }} />
         <Stack.Screen name="admin/reports" options={{ headerShown: true, title: 'Moderation' }} />
         <Stack.Screen
           name="settings/edit-profile"

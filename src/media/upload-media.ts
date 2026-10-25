@@ -1,7 +1,7 @@
 import { File, UploadType } from 'expo-file-system';
 
 import { getApiUrl } from '@/api/config';
-import { getAuthToken, networkError, notifyUnauthorized, toApiError } from '@/api/client';
+import { getAuthToken, networkError, notifyIfSessionEnded, toApiError } from '@/api/client';
 import type { Media } from '@/api/types';
 
 export type UploadInput = {
@@ -35,7 +35,10 @@ export async function uploadMedia(input: UploadInput): Promise<Media> {
     throw networkError();
   }
 
-  if (result.status === 401) notifyUnauthorized();
-  if (result.status < 200 || result.status >= 300) throw toApiError(result.status, result.body);
+  if (result.status < 200 || result.status >= 300) {
+    const error = toApiError(result.status, result.body);
+    notifyIfSessionEnded(error);
+    throw error;
+  }
   return JSON.parse(result.body) as Media;
 }

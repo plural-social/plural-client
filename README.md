@@ -7,7 +7,7 @@ It talks to [`plural-api`](../plural-api).
 
 ```bash
 npm install
-npx expo start          # press i (iOS), a (Android) or w (web)
+npx expo start --web    # web; phones and emulators need a development build, see below
 ```
 
 Start the API first (`cd ../plural-api && make run`). The app finds it at:
@@ -29,6 +29,75 @@ npx expo lint
 npx tsc --noEmit
 npx expo-doctor
 ```
+
+## Running on a phone or emulator
+
+`npx expo start --web` runs the app in a browser. To run it as a real
+installed app (a development build), build it once:
+
+| Target | Needs | Command |
+|---|---|---|
+| Android emulator or USB phone | Android Studio, JDK 17 | `npm run android` |
+| iOS simulator | Xcode and CocoaPods (`brew install cocoapods`) | `npm run ios` |
+| iPhone over USB | Xcode, a free Apple ID set up in Xcode | `npx expo run:ios --device` (with `APP_VARIANT=development`) |
+
+These scripts set `APP_VARIANT=development`. The first run generates the
+`ios/` and `android/` folders. They are build output (Expo Continuous Native
+Generation): git ignores them, and nobody edits them by hand. Change native
+settings in `app.json`, `app.config.ts` or a config plugin instead.
+
+Then start Metro with `npx expo start --dev-client`.
+
+### Build variants
+
+`app.json` holds the shared settings. `app.config.ts` changes what differs by
+`APP_VARIANT`:
+
+| Variant | App id | Network |
+|---|---|---|
+| `development` | `social.plural.app.dev` | Plain HTTP to the local network allowed |
+| `preview`, `production` | `social.plural.app` | HTTPS only |
+
+The `.dev` suffix lets a development build and a release build sit side by
+side on one phone. The final app id is open work (see below); until then it is
+`social.plural.app`.
+
+### Cloud builds (EAS)
+
+These need an Expo account, and iOS device builds need an Apple Developer
+account. Run them yourself:
+
+```bash
+npx eas-cli@latest login
+npx eas-cli@latest build --profile development --platform android
+npx eas-cli@latest build --profile development --platform ios
+```
+
+The `preview` and `production` profiles in `eas.json` need
+`EXPO_PUBLIC_API_URL` set to an HTTPS API (for example as an EAS environment
+variable). Deploying the API is not covered here.
+
+### A physical phone with a local API
+
+1. Find the computer's address: `ipconfig getifaddr en0` on macOS.
+2. Put `EXPO_PUBLIC_API_URL=http://<that address>:4100` in `.env`.
+3. Start the API as usual. It listens on all interfaces, and the file URLs it
+   returns use the address the phone called, so no extra flag is needed.
+4. Restart Metro after changing `.env`. The phone and computer must be on the
+   same network.
+
+## Store readiness
+
+- **Reporting and blocking:** every post, comment and profile can be reported
+  or blocked.
+- **Terms:** when the API runs with `-instance.terms.url`, sign-up requires
+  agreeing to them.
+- **Account deletion:** Edit profile has "Delete account". It asks for the
+  password and removes the account, its content and its files for good.
+
+Open work before a store release: branding (the icons and splash are still the
+Expo placeholders), an HTTPS deployment of the API, the final app id, and
+Apple and Google developer accounts.
 
 ## Layout
 

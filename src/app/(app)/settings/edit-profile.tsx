@@ -88,6 +88,7 @@ export default function EditProfileScreen(): React.JSX.Element {
         loading={mutation.isPending}
         disabled={!hasChanges}
       />
+      <Button label="Delete account" variant="secondary" onPress={() => router.push('/settings/delete-account')} />
     </FormScreen>
   );
 }

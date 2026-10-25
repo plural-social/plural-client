@@ -45,7 +45,7 @@ export function getAuthToken(): string | null {
   return authToken;
 }
 
-/** Registers a callback for a 401 on a request that sent a token. Returns an unsubscribe function. */
+/** Registers a callback for when the server rejects the session token. Returns an unsubscribe function. */
 export function onUnauthorized(callback: () => void): () => void {
   unauthorizedCallbacks.add(callback);
   return () => {
@@ -79,6 +79,15 @@ export function notifyUnauthorized(): void {
   unauthorizedCallbacks.forEach((callback) => callback());
 }
 
+/**
+ * Ends the local session when the server rejected the token itself. Other 401s
+ * are about the request: a wrong password on login or account deletion says
+ * nothing about whether the session is still valid.
+ */
+export function notifyIfSessionEnded(error: ApiError): void {
+  if (error.status === 401 && error.type === 'unauthenticated') notifyUnauthorized();
+}
+
 /** Calls the API. Resolves to undefined for 204 responses. */
 export async function apiFetch<T>(path: string, request: ApiRequest = {}): Promise<T> {
   const params = new URLSearchParams();
@@ -110,9 +119,9 @@ export async function apiFetch<T>(path: string, request: ApiRequest = {}): Promi
   }
 
   if (!response.ok) {
-    // Only a rejected token means the session ended; a failed login is a plain 401.
-    if (response.status === 401 && headers.Authorization) notifyUnauthorized();
-    throw toApiError(response.status, await response.text());
+    const error = toApiError(response.status, await response.text());
+    notifyIfSessionEnded(error);
+    throw error;
   }
 
   if (response.status === 204) return undefined as T;
