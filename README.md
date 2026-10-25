@@ -1,71 +1,115 @@
 # plural-client
 
-The Plural app for Android, iOS and web, built with Expo and Expo Router.
-It talks to [`plural-api`](../plural-api).
+The Plural app for Android, iOS and web. Plural is a decentralized,
+open-source social network. People post photos and short videos, watch them in
+a full-screen feed, follow each other, like and comment.
 
-## Development
+Built with Expo (SDK 58), React Native and Expo Router. It talks to
+[`plural-api`](https://github.com/plural-social/plural-api).
 
-```bash
-npm install
-npx expo start --web    # web; phones and emulators need a development build, see below
-```
+## Contents
 
-Start the API first (`cd ../plural-api && make run`). The app finds it at:
+- [Quick start](#quick-start)
+- [Features](#features)
+- [Connecting to the API](#connecting-to-the-api)
+- [Running on a phone or emulator](#running-on-a-phone-or-emulator)
+- [Project layout](#project-layout)
+- [How the app works](#how-the-app-works)
+- [Checks](#checks)
+- [Before a store release](#before-a-store-release)
 
-| Platform | API URL |
+## Quick start
+
+1. Start the API. In the `plural-api` folder:
+
+   ```bash
+   make run              # the API on :4100
+   make run-transcoder   # in a second terminal, so uploaded videos get processed
+   make seed             # optional: test users alice, bob and carol, password password123
+   ```
+
+2. Start the app in a browser:
+
+   ```bash
+   npm install
+   npx expo start --web
+   ```
+
+3. Open http://localhost:8081 and sign in as `alice` with `password123`, or
+   create an account.
+
+## Features
+
+| Area | What users can do |
 |---|---|
-| Web, iOS simulator | `http://localhost:4100` |
+| Account | Sign up, sign in, stay signed in after a restart, sign out, delete the account |
+| Profile | Edit display name, bio and photo. See posts in a grid with follower counts |
+| Posting | Pick a photo or video, preview it, add a caption, upload with progress |
+| Feed | Swipe through a full-screen feed with Following and Explore tabs. Videos play on their own and loop |
+| Social | Like, comment, follow |
+| Safety | Report posts, comments and accounts. Block and unblock users |
+| Moderation | Moderators and admins review reports, remove content and suspend accounts |
+
+## Connecting to the API
+
+The app finds the API here:
+
+| Where the app runs | API address |
+|---|---|
+| Web browser, iOS simulator | `http://localhost:4100` |
 | Android emulator | `http://10.0.2.2:4100` |
-| Physical device | Set `EXPO_PUBLIC_API_URL=http://<your LAN IP>:4100` in `.env` (see `.env.example`) |
+| Physical phone | Set it in `.env` (see below) |
 
-The API only accepts browser requests from origins in its `-cors.origins`
-flag (default `http://localhost:8081`). Running web on another port means
-adding that origin there.
+To use a different address, copy `.env.example` to `.env` and set
+`EXPO_PUBLIC_API_URL`. Restart Metro after you change `.env`.
 
-Checks to run before committing:
+The API accepts browser requests only from the origins in its `-cors.origins`
+flag. The default is `http://localhost:8081`. If you run the web app on
+another port, add that origin to the flag.
 
-```bash
-npx expo lint
-npx tsc --noEmit
-npx expo-doctor
-```
+### A physical phone on your network
+
+1. Find your computer's address. On macOS: `ipconfig getifaddr en0`.
+2. In `.env`, set `EXPO_PUBLIC_API_URL=http://<that address>:4100`.
+3. Start the API as usual. No extra flag is needed: file links use the address
+   the phone called.
+4. Restart Metro. The phone and the computer must be on the same network.
 
 ## Running on a phone or emulator
 
-`npx expo start --web` runs the app in a browser. To run it as a real
-installed app (a development build), build it once:
+The app uses native modules that are not in Expo Go, so phones and emulators
+need a development build. You build it once, then reload code changes as usual.
 
-| Target | Needs | Command |
+| Target | You need | Command |
 |---|---|---|
-| Android emulator or USB phone | Android Studio, JDK 17 | `npm run android` |
+| Android emulator or USB phone | Android Studio and JDK 17 | `npm run android` |
 | iOS simulator | Xcode and CocoaPods (`brew install cocoapods`) | `npm run ios` |
-| iPhone over USB | Xcode, a free Apple ID set up in Xcode | `npx expo run:ios --device` (with `APP_VARIANT=development`) |
+| iPhone over USB | Xcode and an Apple ID signed in to Xcode | `APP_VARIANT=development npx expo run:ios --device` |
 
-These scripts set `APP_VARIANT=development`. The first run generates the
-`ios/` and `android/` folders. They are build output (Expo Continuous Native
-Generation): git ignores them, and nobody edits them by hand. Change native
-settings in `app.json`, `app.config.ts` or a config plugin instead.
+After the first build, start Metro with `npx expo start --dev-client`.
 
-Then start Metro with `npx expo start --dev-client`.
+The first build creates the `ios/` and `android/` folders. They are generated
+files: git ignores them, and you should not edit them. Change native settings
+in `app.json`, `app.config.ts` or a config plugin, then build again.
 
 ### Build variants
 
-`app.json` holds the shared settings. `app.config.ts` changes what differs by
-`APP_VARIANT`:
+`app.json` holds the shared settings. `app.config.ts` changes a few of them
+based on `APP_VARIANT`:
 
-| Variant | App id | Network |
+| Variant | App ID | Network |
 |---|---|---|
-| `development` | `social.plural.app.dev` | Plain HTTP to the local network allowed |
+| `development` | `social.plural.app.dev` | Can use plain HTTP on the local network |
 | `preview`, `production` | `social.plural.app` | HTTPS only |
 
-The `.dev` suffix lets a development build and a release build sit side by
-side on one phone. The final app id is open work (see below); until then it is
-`social.plural.app`.
+The different app ID lets a development build and a release build sit side by
+side on one phone.
 
-### Cloud builds (EAS)
+### Cloud builds with EAS
 
-These need an Expo account, and iOS device builds need an Apple Developer
-account. Run them yourself:
+EAS builds the app in the cloud, so you do not need Xcode or Android Studio.
+You need an Expo account. iOS builds for real devices also need an Apple
+Developer account.
 
 ```bash
 npx eas-cli@latest login
@@ -73,117 +117,136 @@ npx eas-cli@latest build --profile development --platform android
 npx eas-cli@latest build --profile development --platform ios
 ```
 
-The `preview` and `production` profiles in `eas.json` need
-`EXPO_PUBLIC_API_URL` set to an HTTPS API (for example as an EAS environment
-variable). Deploying the API is not covered here.
+The profiles are in `eas.json`. The `preview` and `production` profiles need
+`EXPO_PUBLIC_API_URL` set to an HTTPS API, for example as an EAS environment
+variable.
 
-### A physical phone with a local API
+## Project layout
 
-1. Find the computer's address: `ipconfig getifaddr en0` on macOS.
-2. Put `EXPO_PUBLIC_API_URL=http://<that address>:4100` in `.env`.
-3. Start the API as usual. It listens on all interfaces, and the file URLs it
-   returns use the address the phone called, so no extra flag is needed.
-4. Restart Metro after changing `.env`. The phone and computer must be on the
-   same network.
-
-## Store readiness
-
-- **Reporting and blocking:** every post, comment and profile can be reported
-  or blocked.
-- **Terms:** when the API runs with `-instance.terms.url`, sign-up requires
-  agreeing to them.
-- **Account deletion:** Edit profile has "Delete account". It asks for the
-  password and removes the account, its content and its files for good.
-
-Open work before a store release: branding (the icons and splash are still the
-Expo placeholders), an HTTPS deployment of the API, the final app id, and
-Apple and Google developer accounts.
-
-## Layout
-
-| Path | What |
+| Path | What it holds |
 |---|---|
-| `src/app/` | Routes only. Each file is a screen, `_layout.tsx` files are navigators |
-| `src/api/` | HTTP client, API types, one file of request functions per domain |
-| `src/auth/` | Session state and token storage |
-| `src/hooks/` | Data hooks (queries, mutations) and screen logic |
-| `src/media/` | Image preparation and upload |
-| `src/components/` | UI, grouped by feature (`post/`, `profile/`, `comments/`, `moderation/`, `ui/`) |
-| `src/constants/` | Theme and limits shared with the API |
+| `src/app/` | Screens. Each file is a route. `_layout.tsx` files set up navigation |
+| `src/app/(auth)/` | Sign-in and sign-up, for signed-out users |
+| `src/app/(app)/` | Everything for signed-in users: tabs, posts, profiles, settings, moderation |
+| `src/api/` | The HTTP client, API types, and one file of requests per area |
+| `src/auth/` | The session and token storage |
+| `src/hooks/` | Data hooks (queries and mutations) and screen logic |
+| `src/media/` | Preparing and uploading photos and videos |
+| `src/components/` | UI, grouped by feature: `post/`, `profile/`, `comments/`, `moderation/`, `ui/` |
+| `src/constants/` | Theme colors and the limits shared with the API |
+| `app.config.ts`, `eas.json` | Build variants and cloud build profiles |
 
-Platform-specific code lives in a sibling file with the Expo suffix, for
-example `token-storage.web.ts` next to `token-storage.ts`.
+Code for one platform lives next to the shared file, with the platform in the
+name. For example, `token-storage.web.ts` sits next to `token-storage.ts`, and
+web uses the `.web` file.
 
-## Building blocks
+## How the app works
 
 ### API client (`src/api/client.ts`)
 
-Every request goes through `apiFetch`. It adds the bearer token, encodes JSON,
-and turns every non-2xx response into an `ApiError` with the server's `status`,
-`type` and `details`. Screens branch on `error.type` (for example
-`invalidCredentials`) and never parse responses themselves. A network failure
-is an `ApiError` with status `0`.
+Every request goes through `apiFetch`. It adds the token, encodes JSON, and
+turns every error response into an `ApiError` with the server's `status`,
+`type` and `details`. Screens decide what to show from `error.type`, for
+example `invalidCredentials`. When the server cannot be reached, the error has
+status `0`.
 
 ### Session (`src/auth/session-context.tsx`)
 
-`SessionProvider` restores the token on startup, keeps the API client's token
-in sync with storage, and exposes one state: `loading`, `signedOut`,
-`signedIn` or `error`. The root layout routes on it with `Stack.Protected`,
-so signed-out users only reach the `(auth)` screens. Any 401 on a request that
-sent a token signs the user out.
+`SessionProvider` restores the saved token when the app starts and keeps the
+API client in step with it. It has one of four states: `loading`,
+`signedOut`, `signedIn` or `error`. The root layout shows the sign-in screens
+or the app based on that state.
+
+The token is saved in the device's secure storage on phones, and in
+`localStorage` on web. When the server rejects the token, the app signs out on
+its own. A wrong password, for example when deleting the account, does not
+sign you out.
 
 ### Server data (TanStack Query)
 
-All server reads and writes use TanStack Query. Query keys live in
-`src/api/query-keys.ts`. Lists are infinite queries that page with the API's
-`nextCursor` (`src/hooks/use-post-queries.ts`).
+All data from the server goes through TanStack Query. Query keys are in
+`src/api/query-keys.ts`. Lists load one page at a time as you scroll
+(`src/hooks/use-post-queries.ts`).
 
-The same post can be cached in a feed, a profile grid and its detail screen at
-once. `src/api/post-cache.ts` updates or removes a post in every cache, so a
-like shows everywhere without a refetch. Likes and follows are optimistic:
-they change the cache first and roll back if the request fails
-(`src/hooks/use-post-mutations.ts`).
+One post can appear in a feed, a profile grid and its own screen at the same
+time. `src/api/post-cache.ts` updates every copy at once, so a like shows
+everywhere without reloading.
+
+Likes and follows update the screen before the server answers. If the request
+fails, the change is undone (`src/hooks/use-post-mutations.ts`).
 
 ### Feed (`src/components/post/feed-pager.tsx`)
 
-A `FlatList` where each item is exactly as tall as the screen, so paging and
-`getItemLayout` are exact. The Home tab keeps both feeds mounted and hides the
-inactive one, so switching keeps each scroll position. On web, a wheel or
-trackpad gesture moves exactly one post (`src/hooks/use-wheel-paging.web.ts`).
+The feed is a list where each post fills the screen. The Home tab keeps the
+Following and Explore feeds both loaded and hides the inactive one, so
+switching tabs keeps your place.
+
+On web, one turn of the mouse wheel or one trackpad swipe moves exactly one
+post (`src/hooks/use-wheel-paging.web.ts`).
 
 ### Video playback (`src/components/post/video-post.tsx`)
 
-Only the active post and its two neighbors get a video player; every other
-video shows its poster image. This keeps at most three players alive, which
-Android needs, and preloads the next video so swiping never shows a black
-frame. A video plays only while its post is on screen, the screen is focused
-and the app is in the foreground (`useFocusEffect`, `useAppActive`). It
-restarts from the beginning when you scroll back. The mute setting is shared
-by every video (`PlaybackProvider`) and starts muted on web, where browsers
-block autoplay with sound.
+- Only the post on screen and the two next to it have a video player. The
+  others show a still image. This keeps memory low on Android and loads the
+  next video before you reach it.
+- A video plays only while its post is on screen, the screen is open and the
+  app is in front. Scrolling back starts it from the beginning.
+- Mute applies to every video (`PlaybackProvider`). It starts muted on web,
+  because browsers block videos that start with sound.
 
-Videos are transcoded on the server after upload. Profiles and post pages poll
-while a post is `processing`, and refresh the feeds once it turns `ready`.
+### Posting (`src/hooks/use-create-post.ts`, `src/media/`)
 
-### Uploads (`src/media/`)
+- Photos are converted to JPEG and made smaller on the device before upload.
+  This also handles iPhone HEIC photos.
+- Videos upload as they are. The server converts them. The app first checks the
+  length, size and format, so an upload the server would reject never starts.
+- After a video posts, it shows "Processing" on your profile. The profile
+  checks every few seconds and shows the video when it is ready.
 
-`prepareImage` converts picked photos to JPEG (HEIC included) and scales them
-down before upload. Videos upload as they are; the picker checks their length,
-size and format first, so an upload the server would reject never starts.
-`uploadMedia` sends the raw bytes to `POST /media`: native uses
-`expo-file-system` for progress, web uses `fetch`.
+Some web browsers cannot read every video format, for example iPhone HEVC
+`.mov` files. Then the app cannot read the length or show a preview, but it
+still lets you upload. The server checks the real length.
 
 ### Moderation
 
-Users block accounts and report posts, comments and accounts from the post
-menu, comment rows and profile menu (`ReportSheet`, `useBlockUser`).
+Report and block options are in the post menu, on each comment, and in the
+menu on other people's profiles (`ReportSheet`, `useBlockUser`).
 
 Users with the `moderator` or `admin` role see a "Moderation" button on their
-Profile tab. It lists reports and lets them dismiss them, remove content, or
-suspend accounts.
+profile. It lists reports, and lets them dismiss a report, remove the content
+or suspend the account.
 
-Lifting a suspension has no screen yet. Admins call the API directly:
+The app has no screen to lift a suspension. Admins call the API:
 
 ```bash
 curl -X POST "$API/admin/accounts/<account uuid>/unsuspend" -H "Authorization: Bearer $ADMIN_TOKEN"
 ```
+
+## Checks
+
+Run these before every commit. All must pass with no errors or warnings.
+
+```bash
+npx expo lint
+npx tsc --noEmit
+npx expo-doctor
+```
+
+Install packages with `npx expo install <package>`, not `npm install`. It
+picks versions that work with this Expo SDK.
+
+## Before a store release
+
+Already done, as both app stores require for apps with user content:
+
+- Users can report posts, comments and accounts, and block users.
+- Sign-up asks users to agree to the terms when the API has a terms URL
+  (`-instance.terms.url`).
+- Users can delete their account from Edit profile.
+
+Still to do:
+
+- Replace the placeholder icons and splash screen with Plural branding.
+- Choose the final app ID. It is `social.plural.app` for now.
+- Deploy the API over HTTPS.
+- Create Apple Developer and Google Play accounts.
