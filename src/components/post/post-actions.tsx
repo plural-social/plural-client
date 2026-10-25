@@ -8,6 +8,7 @@ import { confirm } from '@/components/ui/confirm';
 import { Spacing } from '@/constants/theme';
 import { useActionMenu } from '@/hooks/use-action-menu';
 import { useDeletePost, useToggleLike } from '@/hooks/use-post-mutations';
+import { useReportSheet } from '@/hooks/use-report-sheet';
 
 type PostActionsProps = {
   post: Post;
@@ -25,6 +26,7 @@ export function PostActions({ post, onDeleted }: PostActionsProps): React.JSX.El
   const toggleLike = useToggleLike();
   const deletePost = useDeletePost();
   const { open, menu } = useActionMenu();
+  const report = useReportSheet();
 
   async function handleDelete(): Promise<void> {
     const confirmed = await confirm({
@@ -38,10 +40,11 @@ export function PostActions({ post, onDeleted }: PostActionsProps): React.JSX.El
   }
 
   function openMenu(): void {
-    // F13 adds "Report post" for other people's posts.
-    const actions =
-      post.author.uuid === me.uuid ? [{ label: 'Delete post', destructive: true, onPress: () => void handleDelete() }] : [];
-    if (actions.length > 0) open(actions);
+    open(
+      post.author.uuid === me.uuid
+        ? [{ label: 'Delete post', destructive: true, onPress: () => void handleDelete() }]
+        : [{ label: 'Report post', onPress: () => report.open({ type: 'post', uuid: post.uuid, label: 'post' }) }],
+    );
   }
 
   return (
@@ -62,6 +65,7 @@ export function PostActions({ post, onDeleted }: PostActionsProps): React.JSX.El
       />
       <ActionButton icon="ellipsis-horizontal" label="More options" onPress={openMenu} />
       {menu}
+      {report.sheet}
     </View>
   );
 }

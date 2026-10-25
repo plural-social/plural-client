@@ -16,6 +16,7 @@ function signInErrorMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.type === 'invalidCredentials') return 'Wrong username, email or password.';
     if (error.type === 'rateLimited') return 'Too many attempts. Wait a minute and try again.';
+    if (error.type === 'accountSuspended') return 'This account is suspended.';
     return error.message;
   }
   return 'Something went wrong.';

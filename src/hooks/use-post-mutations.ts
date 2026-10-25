@@ -84,11 +84,14 @@ export function useDeleteComment(postUuid: string): UseMutationResult<void, ApiE
   });
 }
 
-/** Optimistic follow toggle on the profile; the Following feed refetches afterwards. */
-export function useToggleFollow(): (profile: Profile) => void {
+/**
+ * Optimistic follow toggle on the profile; the Following feed refetches
+ * afterwards. onError receives the failure after the toggle is rolled back.
+ */
+export function useToggleFollow(): (profile: Profile, onError?: (error: unknown) => void) => void {
   const queryClient = useQueryClient();
 
-  return (profile: Profile) => {
+  return (profile, onError) => {
     const following = !profile.isFollowing;
     const profileKey = queryKeys.profile(profile.username);
     const setFollowing = (value: boolean): void => {
@@ -103,8 +106,9 @@ export function useToggleFollow(): (profile: Profile) => void {
     void (async () => {
       try {
         await (following ? follow(profile.username) : unfollow(profile.username));
-      } catch {
+      } catch (error) {
         setFollowing(!following);
+        onError?.(error);
         await queryClient.invalidateQueries({ queryKey: profileKey });
         return;
       }

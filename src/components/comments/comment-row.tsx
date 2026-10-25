@@ -11,12 +11,14 @@ type CommentRowProps = {
   comment: Comment;
   canDelete: boolean;
   onDelete: () => void;
+  /** Set when the viewer may report this comment (it is not their own). */
+  onReport?: () => void;
   now: Date;
 };
 
 const AVATAR_SIZE = 32;
 
-export function CommentRow({ comment, canDelete, onDelete, now }: CommentRowProps): React.JSX.Element {
+export function CommentRow({ comment, canDelete, onDelete, onReport, now }: CommentRowProps): React.JSX.Element {
   const { author } = comment;
 
   return (
@@ -33,18 +35,22 @@ export function CommentRow({ comment, canDelete, onDelete, now }: CommentRowProp
           <ThemedText type="small" themeColor="textSecondary">
             {formatRelativeTime(comment.createdAt, now)}
           </ThemedText>
-          {canDelete ? (
-            <Pressable
-              onPress={onDelete}
-              accessibilityRole="button"
-              accessibilityLabel="Delete comment"
-              hitSlop={Spacing.two}
-              style={styles.delete}>
-              <ThemedText type="small" themeColor="danger">
-                Delete
-              </ThemedText>
-            </Pressable>
-          ) : null}
+          <View style={styles.actions}>
+            {onReport ? (
+              <Pressable onPress={onReport} accessibilityRole="button" accessibilityLabel="Report comment" hitSlop={Spacing.two}>
+                <ThemedText type="small" themeColor="textSecondary">
+                  Report
+                </ThemedText>
+              </Pressable>
+            ) : null}
+            {canDelete ? (
+              <Pressable onPress={onDelete} accessibilityRole="button" accessibilityLabel="Delete comment" hitSlop={Spacing.two}>
+                <ThemedText type="small" themeColor="danger">
+                  Delete
+                </ThemedText>
+              </Pressable>
+            ) : null}
+          </View>
         </View>
         <ThemedText>{comment.body}</ThemedText>
       </View>
@@ -68,7 +74,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: Spacing.two,
   },
-  delete: {
+  actions: {
+    flexDirection: 'row',
+    gap: Spacing.three,
     marginLeft: 'auto',
   },
 });

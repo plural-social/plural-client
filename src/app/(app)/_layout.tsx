@@ -10,6 +10,8 @@ export default function AppLayout(): React.JSX.Element {
       <Stack.Screen name="(tabs)" options={{ title: 'Back' }} />
       <Stack.Screen name="users/[username]" options={{ headerShown: true, title: '' }} />
       <Stack.Screen name="posts/[uuid]" options={{ headerShown: true, title: 'Post' }} />
+      <Stack.Screen name="settings/blocked" options={{ headerShown: true, title: 'Blocked accounts' }} />
+      <Stack.Screen name="admin/reports" options={{ headerShown: true, title: 'Moderation' }} />
       <Stack.Screen
         name="settings/edit-profile"
         options={{ presentation: 'modal', headerShown: true, title: 'Edit profile' }}
