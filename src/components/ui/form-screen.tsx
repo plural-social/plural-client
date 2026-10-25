@@ -3,15 +3,21 @@ import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 're
 import { ThemedView } from '@/components/themed-view';
 import { Spacing } from '@/constants/theme';
 
-const FORM_MAX_WIDTH = 400;
+const DEFAULT_MAX_WIDTH = 400;
+
+type FormScreenProps = {
+  children: React.ReactNode;
+  /** Width cap in points; keeps forms readable on web. */
+  maxWidth?: number;
+};
 
 /** Centered, keyboard-aware column for forms. Inputs stay above the keyboard on iOS. */
-export function FormScreen({ children }: { children: React.ReactNode }): React.JSX.Element {
+export function FormScreen({ children, maxWidth = DEFAULT_MAX_WIDTH }: FormScreenProps): React.JSX.Element {
   return (
     <ThemedView style={styles.fill}>
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.form}>{children}</View>
+          <View style={[styles.form, { maxWidth }]}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </ThemedView>
@@ -29,7 +35,6 @@ const styles = StyleSheet.create({
   },
   form: {
     width: '100%',
-    maxWidth: FORM_MAX_WIDTH,
     alignSelf: 'center',
     gap: Spacing.three,
   },
