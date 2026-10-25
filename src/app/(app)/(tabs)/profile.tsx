@@ -1,28 +1,22 @@
-import { StyleSheet } from 'react-native';
+import { router } from 'expo-router';
 
 import { useMe, useSession } from '@/auth/session-context';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import { ProfileScreen } from '@/components/profile/profile-screen';
 import { Button } from '@/components/ui/button';
-import { Spacing } from '@/constants/theme';
 
-export default function ProfileScreen(): React.JSX.Element {
+export default function MyProfileScreen(): React.JSX.Element {
   const me = useMe();
   const { signOut } = useSession();
 
   return (
-    <ThemedView style={styles.container}>
-      <ThemedText type="subtitle">@{me.username}</ThemedText>
-      <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
-    </ThemedView>
+    <ProfileScreen
+      username={me.username}
+      renderActions={() => (
+        <>
+          <Button label="Edit profile" variant="secondary" onPress={() => router.push('/settings/edit-profile')} />
+          <Button label="Sign out" variant="secondary" onPress={() => void signOut()} />
+        </>
+      )}
+    />
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Spacing.three,
-  },
-});
