@@ -34,7 +34,7 @@ export default function RootLayout(): React.JSX.Element {
           <Stack.Protected guard={!isSignedIn}>
             <Stack.Screen name="(auth)" />
           </Stack.Protected>
-          <Stack.Protected guard={isSignedIn}>
+          <Stack.Protected guard={isSignedIn} redirectTo="/sign-in">
             <Stack.Screen name="(app)" />
           </Stack.Protected>
         </Stack>
