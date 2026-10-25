@@ -100,8 +100,9 @@ while a post is `processing`, and refresh the feeds once it turns `ready`.
 
 `prepareImage` converts picked photos to JPEG (HEIC included) and scales them
 down before upload. Videos upload as they are; the picker checks their length,
-size and format first so an upload the server would reject never starts. `uploadMedia` sends the raw bytes to `POST /media`: native
-uses `expo-file-system` for progress, web uses `fetch`.
+size and format first, so an upload the server would reject never starts.
+`uploadMedia` sends the raw bytes to `POST /media`: native uses
+`expo-file-system` for progress, web uses `fetch`.
 
 ### Moderation
 
